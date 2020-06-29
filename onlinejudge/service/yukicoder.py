@@ -9,15 +9,17 @@ the module for yukicoder (https://yukicoder.me/)
 import json
 import posixpath
 import urllib.parse
+from logging import getLogger
 from typing import *
 
 import bs4
 
-import onlinejudge._implementation.logging as log
 import onlinejudge._implementation.testcase_zipper
 import onlinejudge._implementation.utils as utils
 import onlinejudge.dispatch
 from onlinejudge.type import *
+
+logger = getLogger()
 
 
 class YukicoderService(onlinejudge.type.Service):
@@ -249,7 +251,7 @@ class YukicoderProblem(onlinejudge.type.Problem):
         soup = bs4.BeautifulSoup(resp.content.decode(resp.encoding), utils.html_parser)
         samples = onlinejudge._implementation.testcase_zipper.SampleZipper()
         for pre in soup.select('.sample pre'):
-            log.debug('pre: %s', str(pre))
+            logger.debug('pre: %s', str(pre))
             it = self._parse_sample_tag(pre)
             if it is not None:
                 data, name = it
@@ -275,8 +277,8 @@ class YukicoderProblem(onlinejudge.type.Problem):
         prv = utils.previous_sibling_tag(tag)
         pprv = tag.parent and utils.previous_sibling_tag(tag.parent)
         if prv.name == 'h6' and tag.parent.name == 'div' and tag.parent['class'] == ['paragraph'] and pprv.name == 'h5':
-            log.debug('h6: %s', str(prv))
-            log.debug('name.encode(): %s', prv.string.encode())
+            logger.debug('h6: %s', str(prv))
+            logger.debug('name.encode(): %s', prv.string.encode())
 
             s = utils.parse_content(tag)
 
@@ -296,7 +298,7 @@ class YukicoderProblem(onlinejudge.type.Problem):
         soup = bs4.BeautifulSoup(resp.content.decode(resp.encoding), utils.html_parser)
         form = soup.find('form', id='submit_form')
         if not form:
-            log.error('form not found')
+            logger.error('form not found')
             raise NotLoggedInError
         # post
         form = utils.FormSender(form, url=resp.url)
@@ -308,13 +310,13 @@ class YukicoderProblem(onlinejudge.type.Problem):
         # result
         if 'submissions' in resp.url:
             # example: https://yukicoder.me/submissions/314087
-            log.success('success: result: %s', resp.url)
+            logger.info('success: result: %s', resp.url)
             return utils.DummySubmission(resp.url, problem=self)
         else:
-            log.failure('failure')
+            logger.error('failure')
             soup = bs4.BeautifulSoup(resp.content.decode(resp.encoding), utils.html_parser)
             for div in soup.findAll('div', attrs={'role': 'alert'}):
-                log.warning('yukicoder says: "%s"', div.string)
+                logger.warning('yukicoder says: "%s"', div.string)
             raise SubmissionError
 
     def get_available_languages(self, *, session: Optional[requests.Session] = None) -> List[Language]:

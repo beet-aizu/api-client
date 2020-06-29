@@ -9,15 +9,17 @@ import json
 import re
 import string
 import urllib.parse
+from logging import getLogger
 from typing import *
 
 import bs4
 import requests
 
-import onlinejudge._implementation.logging as log
 import onlinejudge._implementation.utils as utils
 import onlinejudge.type
 from onlinejudge.type import SampleParseError, TestCase
+
+logger = getLogger()
 
 
 class GoogleCodeJamService(onlinejudge.type.Service):
@@ -62,7 +64,7 @@ class GoogleCodeJamProblem(onlinejudge.type.Problem):
             url = 'https://codejam.googleapis.com/dashboard/{}/poll?p=e30'.format(self.contest_id)
             resp = utils.request('GET', url, session=session)
             data = json.loads(base64.urlsafe_b64decode(resp.content + b'=' * ((-len(resp.content)) % 4)).decode())
-            log.debug('%s', data)
+            logger.debug('%s', data)
 
             # parse JSON
             for task in data['challenge']['tasks']:
@@ -77,7 +79,7 @@ class GoogleCodeJamProblem(onlinejudge.type.Problem):
                 url = 'https://{}/{}/contest/{}/dashboard/ContestInfo'.format(self.domain, self.kind, self.contest_id)
                 resp = utils.request('GET', url, session=session)
             except requests.HTTPError:
-                log.warning('hint: Google Code Jam moves old problems to the new platform')
+                logger.warning('hint: Google Code Jam moves old problems to the new platform')
                 raise
             data = json.loads(resp.content.decode())
 
@@ -95,9 +97,9 @@ class GoogleCodeJamProblem(onlinejudge.type.Problem):
         if len(io_contents) != 2:
             raise SampleParseError("""the number of <pre class="io-content"> is not two""")
         if io_contents[0].text.startswith('Case #'):
-            log.warning('''the sample input starts with "Case #"''')
+            logger.warning('''the sample input starts with "Case #"''')
         if not io_contents[1].text.startswith('Case #'):
-            log.warning('''the sample output doesn't start with "Case #"''')
+            logger.warning('''the sample output doesn't start with "Case #"''')
         sample = TestCase(
             'sample',
             'Input',
